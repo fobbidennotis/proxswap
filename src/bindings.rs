@@ -1,15 +1,24 @@
 use std::process::Command;
+use crate::configuration::IptablesRule;
 
 
-pub async fn start_redsocks(config_path: String) {
+pub async fn start_redsocks(name: &str) {
+    kill_redsocks();
     let _ = dbg!(Command::new("redsocks")
-        .args(["-c", &config_path])
+        .args(["-c", &format!("./config/redsocks/{}.conf", name)])
         .output()
         .unwrap());
 }
 
-pub async fn make_iptables_rule(dport: u16, action:&str, to_port: u16) {
-    let _ = dbg!(Command::new("sudo")
+async fn kill_redsocks() {
+    let _ = Command::new("sudo")
+        .args(["killall", "redsocks"])
+        .output()
+        .unwrap();
+}
+
+pub async fn make_iptables_rule(rule: &IptablesRule) -> anyhow::Result<()> {
+    let status = dbg!(Command::new("sudo")
         .args([
             "iptables",
             "-t",
@@ -19,12 +28,19 @@ pub async fn make_iptables_rule(dport: u16, action:&str, to_port: u16) {
             "-p",
             "tcp",
             "--dport",
-            &dport.to_string(),
+            &rule.dport.to_string(),
             "-j",
-            action,
+            &rule.action,
             "--to-port",
-            &to_port.to_string()
+            &rule.to_port.to_string()
         ])
-        .output()
+        .status()
         .unwrap());
+    
+    if !status.success() {
+        anyhow::bail!("Couldn't make an iptables rule");
+    }
+    
+    
+    Ok(())
 }
