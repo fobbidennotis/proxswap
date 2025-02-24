@@ -1,12 +1,10 @@
 mod configuration;
 use crate::configuration::Configuration;
-use std::fs::{read_dir, File};
-use std::io::BufReader;
 use configuration::{IptablesRule, Proxy};
 use serde_json::from_reader;
+use std::fs::{read_dir, File};
+use std::io::BufReader;
 mod bindings;
-
-
 
 async fn init_configurations_dir(dir_path: &str) -> Vec<Configuration> {
     let mut configurations: Vec<Configuration> = Vec::new();
@@ -30,7 +28,6 @@ async fn init_configuration(file_path: String) -> Configuration {
     let reader = BufReader::new(file);
     let config: Configuration = from_reader(reader).expect("Failed to parse JSON");
 
-    
     Configuration::new(config.name, config.proxies, config.rules).await
 }
 
@@ -42,14 +39,22 @@ async fn main() {
         dbg!(conf);
     }
 
-    current_configurations.push(Configuration::new("Yet Another Configuration".to_string(),
-            vec![
-                Proxy { proxy_type: "socks5".to_string(), url: "185.182.111.54".to_string(), port: 1488 }
-            ],
-            vec![
-                IptablesRule { dport: 80, to_port: 443, action: "REDIRECT".to_string() }
-            ]
-            ).await);
+    current_configurations.push(
+        Configuration::new(
+            "Yet Another Configuration".to_string(),
+            vec![Proxy {
+                proxy_type: "socks5".to_string(),
+                url: "185.182.111.54".to_string(),
+                port: 1488,
+            }],
+            vec![IptablesRule {
+                dport: 80,
+                to_port: 443,
+                action: "REDIRECT".to_string(),
+            }],
+        )
+        .await,
+    );
 
     current_configurations[0].run().await;
 }

@@ -1,9 +1,8 @@
-use std::process::Command;
 use crate::configuration::IptablesRule;
-
+use std::process::Command;
 
 pub async fn start_redsocks(name: &str) {
-    kill_redsocks();
+    kill_redsocks().await;
     let _ = dbg!(Command::new("redsocks")
         .args(["-c", &format!("./config/redsocks/{}.conf", name)])
         .output()
@@ -36,11 +35,10 @@ pub async fn make_iptables_rule(rule: &IptablesRule) -> anyhow::Result<()> {
         ])
         .status()
         .unwrap());
-    
+
     if !status.success() {
         anyhow::bail!("Couldn't make an iptables rule");
     }
-    
-    
+
     Ok(())
 }

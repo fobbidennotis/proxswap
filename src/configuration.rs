@@ -1,11 +1,9 @@
-use std::fs::File;
-use std::path::Path;
-use std::io::prelude::*;
+use crate::bindings::{make_iptables_rule, start_redsocks};
 use anyhow::Ok;
 use serde::{Deserialize, Serialize};
-use crate::bindings::{start_redsocks, make_iptables_rule};
-
-
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Proxy {
@@ -28,8 +26,12 @@ pub struct Configuration {
     pub rules: Vec<IptablesRule>,
 }
 
-impl Configuration {   
-    pub async fn new(config_name: String, proxies: Vec<Proxy>, rules: Vec<IptablesRule>) -> Configuration {
+impl Configuration {
+    pub async fn new(
+        config_name: String,
+        proxies: Vec<Proxy>,
+        rules: Vec<IptablesRule>,
+    ) -> Configuration {
         let conf = if Path::new(&format!("./config/proxswap/{}.json", &config_name)).is_file() {
             Configuration {
                 name: config_name,
@@ -49,18 +51,18 @@ impl Configuration {
 
         for rule in conf.rules.iter() {
             let _ = make_iptables_rule(rule).await;
-        };
+        }
 
         conf.make_configuration_file().await.unwrap();
 
         conf
-    } 
+    }
 
     pub async fn run(&self) {
         start_redsocks(&self.name).await;
 
         for rule in self.rules.iter() {
-           let _ = make_iptables_rule(rule).await;
+            let _ = make_iptables_rule(rule).await;
         }
     }
 
@@ -84,7 +86,7 @@ impl Configuration {
 "#
         .to_string()]; // Init a vector with base configured
         let mut local_port = 14888; // start port used by the app, the first proxy's local_port in the chain
-    
+
         for proxy in self.proxies.iter() {
             proxy_chain.push(format!(
                 r#"redsocks {{
@@ -100,11 +102,11 @@ impl Configuration {
             ));
             local_port += 1;
         }
-    
+
         println!("{}", proxy_chain.join("\n"));
-    
+
         let _ = file.write_all(proxy_chain.join("\n").as_bytes());
-    
+
         Ok(())
     }
 }
