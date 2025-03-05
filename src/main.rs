@@ -5,6 +5,7 @@ use serde_json::from_reader;
 use std::fs::{read_dir, File};
 use std::io::BufReader;
 mod bindings;
+mod tui;
 
 async fn init_configurations_dir(dir_path: &str) -> Vec<Configuration> {
     let mut configurations: Vec<Configuration> = Vec::new();
@@ -33,28 +34,7 @@ async fn init_configuration(file_path: String) -> Configuration {
 
 #[tokio::main]
 async fn main() {
-    let mut current_configurations = dbg!(init_configurations_dir("./config/").await);
-
-    for conf in current_configurations.iter() {
-        dbg!(conf);
-    }
-
-    current_configurations.push(
-        Configuration::new(
-            "Yet Another Configuration".to_string(),
-            vec![Proxy {
-                proxy_type: "socks5".to_string(),
-                url: "185.182.111.54".to_string(),
-                port: 1488,
-            }],
-            vec![IptablesRule {
-                dport: 80,
-                to_port: 443,
-                action: "REDIRECT".to_string(),
-            }],
-        )
-        .await,
-    );
-
-    current_configurations[0].run().await;
+    let configurations = init_configurations_dir("./config/").await;
+    let mut app = tui::App::new(configurations);
+    app.run().await.expect("Failed to run application");
 }
