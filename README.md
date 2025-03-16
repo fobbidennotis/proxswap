@@ -23,7 +23,7 @@ ProxSwap is a powerful and flexible proxy management tool written in Rust btw. I
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/proxswap.git
+   git clone https://github.com/fobbidennotis/proxswap.git
    cd proxswap
    ```
 
