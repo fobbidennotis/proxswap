@@ -41,7 +41,7 @@ ProxSwap is a powerful and flexible proxy management tool written in Rust btw. I
 
 ### Configuration
 
-Configurations are stored in the `./config/` directory as JSON files. Each configuration file should define proxies and `iptables` rules.
+Configurations are stored in the `~/.config/proxswap/` directory as JSON files. Each configuration file should define proxies and `iptables` rules.
 
 Example configuration file:
 
