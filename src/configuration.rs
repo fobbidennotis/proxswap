@@ -1,9 +1,11 @@
 use crate::bindings::{make_iptables_rule, start_redsocks};
 use anyhow::Ok;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::fs::{read_to_string, File};
 use std::io::prelude::*;
 use std::path::Path;
+use crate::paths::*;
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Proxy {
@@ -32,14 +34,16 @@ impl Configuration {
         proxies: Vec<Proxy>,
         rules: Vec<IptablesRule>,
     ) -> Configuration {
-        let conf = if Path::new(&format!("./config/proxswap/{}.json", &config_name)).is_file() {
+        let config_path: &str = &format!("{}/{}.json", &*CONFIG_DIR, &config_name);
+
+        let conf = if Path::new(&config_path).is_file() {
             Configuration {
                 name: config_name,
-                proxies: serde_json::from_str("").unwrap(),
-                rules: Vec::new(),
+                proxies: proxies,
+                rules: rules,
             }
         } else {
-            let _ = File::create(format!("./config/proxswap/{}.json", &config_name));
+            let _ = File::create(config_path);
             Configuration {
                 name: config_name,
                 proxies: proxies,
@@ -67,7 +71,7 @@ impl Configuration {
     }
 
     async fn make_configuration_file(&self) -> Result<(), anyhow::Error> {
-        let mut file = File::create(format!("./config/{}.json", &self.name)).unwrap();
+        let mut file = File::create(format!("{}/{}.json", &*CONFIG_DIR, &self.name)).unwrap();
         let json = serde_json::to_string(&self).unwrap();
 
         let _ = file.write_all(json.as_bytes());
@@ -76,7 +80,7 @@ impl Configuration {
     }
 
     async fn generate_redsocks_config(&self) -> Result<(), anyhow::Error> {
-        let mut file = File::create(format!("./config/redsocks/{}.conf", &self.name))?;
+        let mut file = File::create(format!("{}/{}.conf", &*REDSOCKS_DIR, &self.name))?;
         let mut proxy_chain: Vec<String> = vec![r#"base {
     log_debug = off;
     log_info = off;
@@ -84,7 +88,7 @@ impl Configuration {
     redirector = iptables;
 }
 "#
-        .to_string()]; // Init a vector with base configured
+        .to_string()];
         let mut local_port = 14888; // start port used by the app, the first proxy's local_port in the chain
 
         for proxy in self.proxies.iter() {

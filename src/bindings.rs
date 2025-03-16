@@ -1,10 +1,12 @@
 use crate::configuration::IptablesRule;
 use std::process::Command;
+use crate::paths::*;
+
 
 pub async fn start_redsocks(name: &str) {
     kill_redsocks().await;
     let _ = Command::new("redsocks")
-        .args(["-c", &format!("./config/redsocks/{}.conf", name)])
+        .args(["-c", &format!("{}/{}.conf", &*REDSOCKS_DIR, name)])
         .output();
 }
 
