@@ -1,7 +1,7 @@
 use crate::bindings::{make_iptables_rule, start_redsocks};
 use anyhow::Ok;
 use serde::{Deserialize, Serialize};
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use crate::paths::*;
@@ -107,7 +107,6 @@ impl Configuration {
             local_port += 1;
         }
 
-        println!("{}", proxy_chain.join("\n"));
 
         let _ = file.write_all(proxy_chain.join("\n").as_bytes());
 

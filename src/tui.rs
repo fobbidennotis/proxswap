@@ -1,4 +1,4 @@
-use crate::configuration::{Configuration, IptablesRule, Proxy};
+use crate::{configuration::{Configuration, IptablesRule, Proxy}, CONFIG_DIR};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -9,7 +9,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Clear},
     style::Color,
 };
-use std::{error::Error, io, process::Command};
+use std::{error::Error, fs::read_to_string, io::{self, Write}, process::Command};
 use crate::bindings;
 
 pub enum InputMode {
@@ -95,7 +95,7 @@ impl App {
         let filtered_configs: Vec<usize> = (0..configurations.len()).collect();
         App {
             configurations,
-            active_config_index: None,
+            active_config_index: dbg!(Self::get_active_config()),
             config_list_state: ListState::default(),
             input_mode: InputMode::Normal,
             focus: Focus::ConfigList,
@@ -127,6 +127,23 @@ impl App {
         Ok(())
     }
 
+    fn get_active_config() -> Option<usize> {
+        let path = format!("{}/active_config.txt", *CONFIG_DIR);
+   
+        if !std::path::Path::new(&path).exists() {
+            return None
+        }
+
+        let val = std::fs::read_to_string(&path).ok()?;
+        let trimmed = val.trim();
+
+        if trimmed == "None" {
+            None
+        } else {
+            trimmed.parse().ok()
+        }
+    }
+
     async fn ensure_sudo_access(&self) -> Result<(), Box<dyn Error>> {
         let status = Command::new("sudo")
             .arg("-v")
@@ -136,6 +153,19 @@ impl App {
             return Err("Failed to obtain sudo privileges".into());
         }
         Ok(())
+    }
+
+    async fn write_active_config(&self, index: String) {
+        let mut file = std::fs::File::create(format!("{}/active_config.txt", *CONFIG_DIR)).unwrap();
+        let _ = file.write_all(index.as_bytes());
+    }
+
+    async fn set_active_config(&mut self, real_index: Option<usize>) {
+        match real_index {
+            Some(i) => self.write_active_config(i.to_string()).await,
+            None => self.write_active_config("None".to_string()).await,
+        }
+        self.active_config_index = real_index;
     }
 
     async fn run_app<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<()> {
@@ -163,9 +193,9 @@ impl App {
                             KeyCode::Up => self.previous(),
                             KeyCode::Enter => {
                                 if let Some(index) = self.config_list_state.selected() {
-                                    if let Some(real_index) = self.filtered_configs.get(index) {
-                                        self.active_config_index = Some(*real_index);
-                                        self.configurations[*real_index].run().await;
+                                    if let Some(&real_index) = self.filtered_configs.get(index) {
+                                        self.set_active_config(Some(real_index)).await;
+                                        self.configurations[real_index].run().await;
                                     }
                                 }
                             }
@@ -303,7 +333,7 @@ impl App {
 
     async fn deactivate_proxy(&mut self) {
         bindings::deactivate_proxy().await;
-        self.active_config_index = None;
+        self.set_active_config(None).await;
     }
 
     fn ui(&self, f: &mut Frame) {
