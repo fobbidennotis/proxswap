@@ -606,6 +606,7 @@ impl App {
     fn delete_selected(&mut self) {
         if let Some(selected) = self.config_list_state.selected() {
             if let Some(&real_index) = self.filtered_configs.get(selected) {
+                self.configurations[real_index].delete_configuration().unwrap();
                 self.configurations.remove(real_index);
                 self.filter_configurations();
                 if selected >= self.filtered_configs.len() {

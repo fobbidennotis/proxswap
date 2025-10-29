@@ -1,8 +1,7 @@
 use crate::bindings::{make_iptables_rule, start_redsocks};
 use anyhow::Ok;
 use serde::{Deserialize, Serialize};
-use std::fmt::format;
-use std::fs::File;
+use std::fs::{File, remove_file};
 use std::io::prelude::*;
 use std::path::Path;
 use crate::paths::*;
@@ -71,6 +70,13 @@ impl Configuration {
         for rule in self.rules.iter() {
             let _ = make_iptables_rule(rule).await;
         }
+    }
+
+    pub fn delete_configuration(&self) -> Result<(), anyhow::Error> {
+        remove_file(format!("{}/{}.json", &*CONFIG_DIR, &self.name));
+        remove_file(format!("{}/{}.conf", &*REDSOCKS_DIR, &self.name));
+
+        Ok(())
     }
 
     async fn make_configuration_file(&self) -> Result<(), anyhow::Error> {
