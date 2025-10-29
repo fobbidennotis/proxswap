@@ -55,10 +55,6 @@ impl Configuration {
 
         conf.generate_redsocks_config().await.unwrap();
 
-        for rule in conf.rules.iter() {
-            let _ = make_iptables_rule(rule).await;
-        }
-
         conf.make_configuration_file().await.unwrap();
 
         conf
@@ -73,8 +69,8 @@ impl Configuration {
     }
 
     pub fn delete_configuration(&self) -> Result<(), anyhow::Error> {
-        remove_file(format!("{}/{}.json", &*CONFIG_DIR, &self.name));
-        remove_file(format!("{}/{}.conf", &*REDSOCKS_DIR, &self.name));
+        let _ = remove_file(format!("{}/{}.json", &*CONFIG_DIR, &self.name));
+        let _ = remove_file(format!("{}/{}.conf", &*REDSOCKS_DIR, &self.name));
 
         Ok(())
     }
