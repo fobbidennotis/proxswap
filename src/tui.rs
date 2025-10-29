@@ -9,7 +9,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Clear},
     style::Color,
 };
-use std::{error::Error, fs::read_to_string, io::{self, Write}, process::Command};
+use std::{error::Error, io::{self, Write}, process::Command};
 use crate::bindings;
 
 pub enum InputMode {
@@ -29,6 +29,8 @@ pub enum CreationField {
     ProxyType,
     ProxyUrl,
     ProxyPort,
+    ProxyLogin,
+    ProxyPassword,
     RedirectPorts,
     Confirm,
 }
@@ -39,6 +41,8 @@ pub struct CreationState {
     proxy_type: String,
     proxy_url: String,
     proxy_port: String,
+    proxy_login: String,
+    proxy_password: String,
     redirect_ports: Vec<String>,  
     current_port_input: String,   
 }
@@ -51,6 +55,8 @@ impl CreationState {
             proxy_type: String::new(),
             proxy_url: String::new(),
             proxy_port: String::new(),
+            proxy_login: String::new(),
+            proxy_password: String::new(),
             redirect_ports: Vec::new(),
             current_port_input: String::new(),
         }
@@ -61,7 +67,9 @@ impl CreationState {
             CreationField::Name => CreationField::ProxyType,
             CreationField::ProxyType => CreationField::ProxyUrl,
             CreationField::ProxyUrl => CreationField::ProxyPort,
-            CreationField::ProxyPort => CreationField::RedirectPorts,
+            CreationField::ProxyPort => CreationField::ProxyLogin,
+            CreationField::ProxyLogin => CreationField::ProxyPassword,
+            CreationField::ProxyPassword => CreationField::RedirectPorts,
             CreationField::RedirectPorts => CreationField::Confirm,
             CreationField::Confirm => CreationField::Confirm,
         };
@@ -73,7 +81,9 @@ impl CreationState {
             CreationField::ProxyType => CreationField::Name,
             CreationField::ProxyUrl => CreationField::ProxyType,
             CreationField::ProxyPort => CreationField::ProxyUrl,
-            CreationField::RedirectPorts => CreationField::ProxyPort,
+            CreationField::ProxyLogin => CreationField::ProxyPort,
+            CreationField::ProxyPassword => CreationField::ProxyLogin,
+            CreationField::RedirectPorts => CreationField::ProxyPassword,
             CreationField::Confirm => CreationField::RedirectPorts,
         };
     }
@@ -199,7 +209,7 @@ impl App {
                                     }
                                 }
                             }
-                            KeyCode::Delete => self.delete_selected(),
+                            KeyCode::Char('d') => self.delete_selected(),
                             KeyCode::Tab => self.cycle_focus(),
                             _ => {}
                         }
@@ -273,6 +283,8 @@ impl App {
                                                 creation_state.proxy_port.push(c);
                                             }
                                         }
+                                        CreationField::ProxyLogin => { creation_state.proxy_login.push(c) }
+                                        CreationField::ProxyPassword => { creation_state.proxy_password.push(c) }
                                         CreationField::RedirectPorts => {
                                             if c.is_ascii_digit() {
                                                 creation_state.current_port_input.push(c);
@@ -289,6 +301,8 @@ impl App {
                                         CreationField::ProxyType => { creation_state.proxy_type.pop(); }
                                         CreationField::ProxyUrl => { creation_state.proxy_url.pop(); }
                                         CreationField::ProxyPort => { creation_state.proxy_port.pop(); }
+                                        CreationField::ProxyLogin => { creation_state.proxy_login.pop(); }
+                                        CreationField::ProxyPassword => { creation_state.proxy_password.pop(); }
                                         CreationField::RedirectPorts => {
                                             creation_state.current_port_input.pop();
                                         }
@@ -310,6 +324,8 @@ impl App {
                 proxy_type: creation_state.proxy_type.clone(),
                 url: creation_state.proxy_url.clone(),
                 port: creation_state.proxy_port.parse().unwrap_or(0),
+                login: creation_state.proxy_login.clone(),
+                password: creation_state.proxy_password.clone()
             };
 
             let rules = creation_state.redirect_ports.iter().map(|port| {
@@ -473,7 +489,7 @@ impl App {
         f.render_widget(status_bar, chunks[2]);
 
         if let Some(creation_state) = &self.creation_state {
-            let creation_area = centered_rect(60, 20, f.area());
+            let creation_area = centered_rect(60, 30, f.area());
             f.render_widget(Clear, creation_area);
             
             let creation_block = Block::default()
@@ -513,6 +529,10 @@ impl App {
                 matches!(creation_state.current_field, CreationField::ProxyUrl)));
             content.push(style_field("Proxy Port", &creation_state.proxy_port,
                 matches!(creation_state.current_field, CreationField::ProxyPort)));
+            content.push(style_field("Proxy Login", &creation_state.proxy_login,
+                    matches!(creation_state.current_field, CreationField::ProxyLogin)));
+            content.push(style_field("Proxy Password", &creation_state.proxy_password,
+                matches!(creation_state.current_field, CreationField::ProxyPassword)));
             
             let ports_str = if creation_state.redirect_ports.is_empty() {
                 "None".to_string()

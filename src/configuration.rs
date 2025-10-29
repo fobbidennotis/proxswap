@@ -1,6 +1,7 @@
 use crate::bindings::{make_iptables_rule, start_redsocks};
 use anyhow::Ok;
 use serde::{Deserialize, Serialize};
+use std::fmt::format;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -12,6 +13,8 @@ pub struct Proxy {
     pub proxy_type: String,
     pub url: String,
     pub port: u32,
+    pub login: String,
+    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -93,17 +96,25 @@ impl Configuration {
 
         for proxy in self.proxies.iter() {
             proxy_chain.push(format!(
-                r#"redsocks {{
+r#"redsocks {{
     local_ip = 127.0.0.1;
     local_port = {};
 
     type = {};
     ip = {};
-    port = {};
-}}
-"#,
-                local_port, proxy.proxy_type, proxy.url, proxy.port
-            ));
+    port = {};"#, local_port, proxy.proxy_type, proxy.url, proxy.port));
+            if proxy.login != "" && proxy.password != "" {
+                proxy_chain.push(format!(
+r#"
+    login = {};
+    password = {};
+"#, 
+                    proxy.login, proxy.password
+                ));
+            }
+
+            proxy_chain.push(r#"}
+"#.to_string());       
             local_port += 1;
         }
 
