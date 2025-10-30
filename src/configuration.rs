@@ -18,7 +18,7 @@ pub struct Proxy {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IptablesRule {
-    pub dport: u16,
+    pub dport: String,
     pub to_port: u16,
     pub action: String,
 }

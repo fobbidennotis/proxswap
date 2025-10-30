@@ -286,7 +286,7 @@ impl App {
                                         CreationField::ProxyLogin => { creation_state.proxy_login.push(c) }
                                         CreationField::ProxyPassword => { creation_state.proxy_password.push(c) }
                                         CreationField::RedirectPorts => {
-                                            if c.is_ascii_digit() {
+                                            if (c.is_ascii_digit()) || (c == ':') {
                                                 creation_state.current_port_input.push(c);
                                             }
                                         }
@@ -330,7 +330,7 @@ impl App {
 
             let rules = creation_state.redirect_ports.iter().map(|port| {
                 IptablesRule {
-                    dport: port.parse().unwrap_or(0),
+                    dport: port.parse().unwrap_or(0.to_string()),
                     to_port: 14888,
                     action: "REDIRECT".to_string(),
                 }
@@ -366,7 +366,6 @@ impl App {
             .block(Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Cyan))
-                .title("┤ ProxSwap ├")
                 .title_alignment(Alignment::Center))
             .style(Style::default().fg(Color::Cyan))
             .alignment(Alignment::Center);
@@ -540,7 +539,7 @@ impl App {
                 creation_state.redirect_ports.join(", ")
             };
             
-            content.push(style_field("Redirect Ports", &ports_str,
+            content.push(style_field("Redirect Ports/Ranges", &ports_str,
                 matches!(creation_state.current_field, CreationField::RedirectPorts)));
             
             if matches!(creation_state.current_field, CreationField::RedirectPorts) {
